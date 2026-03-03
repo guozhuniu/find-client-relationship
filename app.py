@@ -14,7 +14,8 @@ def index():
     return "Hello World!"
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    # 尝试使用固定端口8000
+    port = 8000
     logger.info(f"Starting server on port {port}")
     logger.info(f"Environment variables: {dict(os.environ)}")
     app.run(debug=False, host='0.0.0.0', port=port)
