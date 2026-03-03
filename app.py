@@ -124,102 +124,121 @@ def init_db():
     conn.close()
 
 # 初始化数据库
-init_db()
+print("Initializing database...")
+try:
+    init_db()
+    print("Database initialized successfully")
+except Exception as e:
+    print(f"Error initializing database: {e}")
 
 # 加载数据
 companies = []
 people = []
 relationships = []
 
-conn = get_db_connection()
-c = conn.cursor()
-
-# 加载公司数据
-c.execute('SELECT * FROM companies')
-for row in c.fetchall():
-    companies.append({
-        "id": row['id'],
-        "name": row['name'],
-        "industry": row['industry'],
-        "website": row['website'],
-        "description": row['description'],
-        "logo": row['logo']
-    })
-
-# 加载人员数据
-c.execute('SELECT * FROM people')
-for row in c.fetchall():
-    people.append({
-        "id": row['id'],
-        "name": row['name'],
-        "position": row['position'],
-        "phone": row['phone'],
-        "email": row['email'],
-        "companyId": row['companyId'],
-        "parentId": row['parentId']
-    })
-
-# 加载关系数据
-c.execute('SELECT * FROM relationships')
-for row in c.fetchall():
-    relationships.append({
-        "person1Id": row['person1Id'],
-        "person2Id": row['person2Id'],
-        "intimacyScore": row['intimacyScore'],
-        "commonConnections": row['commonConnections'],
-        "interactionFrequency": row['interactionFrequency']
-    })
-
-conn.close()
+try:
+    print("Loading data...")
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    # 加载公司数据
+    c.execute('SELECT * FROM companies')
+    for row in c.fetchall():
+        companies.append({
+            "id": row['id'],
+            "name": row['name'],
+            "industry": row['industry'],
+            "website": row['website'],
+            "description": row['description'],
+            "logo": row['logo']
+        })
+    
+    # 加载人员数据
+    c.execute('SELECT * FROM people')
+    for row in c.fetchall():
+        people.append({
+            "id": row['id'],
+            "name": row['name'],
+            "position": row['position'],
+            "phone": row['phone'],
+            "email": row['email'],
+            "companyId": row['companyId'],
+            "parentId": row['parentId']
+        })
+    
+    # 加载关系数据
+    c.execute('SELECT * FROM relationships')
+    for row in c.fetchall():
+        relationships.append({
+            "person1Id": row['person1Id'],
+            "person2Id": row['person2Id'],
+            "intimacyScore": row['intimacyScore'],
+            "commonConnections": row['commonConnections'],
+            "interactionFrequency": row['interactionFrequency']
+        })
+    
+    conn.close()
+    print(f"Data loaded successfully: {len(companies)} companies, {len(people)} people, {len(relationships)} relationships")
+except Exception as e:
+    print(f"Error loading data: {e}")
+    if 'conn' in locals():
+        conn.close()
 
 # 生成组织架构数据
 organization = {}
-for company in companies:
-    company_id = company['id']
-    organization[company_id] = {
-        "id": company_id,
-        "name": company['name'],
-        "children": []
-    }
-    
-    # 按公司分组人员
-    company_people = [p for p in people if p['companyId'] == company_id]
-    
-    # 构建组织架构树
-    root_nodes = [p for p in company_people if not p['parentId']]
-    
-    for root in root_nodes:
-        # 加载人员新闻
-        conn = get_db_connection()
-        c = conn.cursor()
-        c.execute('SELECT * FROM news WHERE personId = ?', (root['id'],))
-        news = []
-        for news_row in c.fetchall():
-            news.append({
-                "title": news_row['title'],
-                "url": news_row['url'],
-                "date": news_row['date'],
-                "source": news_row['source']
-            })
-        conn.close()
-        
-        root_node = {
-            "id": root['id'],
-            "name": root['name'],
-            "position": root['position'],
-            "phone": root['phone'],
-            "email": root['email'],
-            "news": news,
+try:
+    print("Generating organization data...")
+    for company in companies:
+        company_id = company['id']
+        organization[company_id] = {
+            "id": company_id,
+            "name": company['name'],
             "children": []
         }
-        organization[company_id]['children'].append(root_node)
+        
+        # 按公司分组人员
+        company_people = [p for p in people if p['companyId'] == company_id]
+        
+        # 构建组织架构树
+        root_nodes = [p for p in company_people if not p['parentId']]
+        
+        for root in root_nodes:
+            # 加载人员新闻
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute('SELECT * FROM news WHERE personId = ?', (root['id'],))
+            news = []
+            for news_row in c.fetchall():
+                news.append({
+                    "title": news_row['title'],
+                    "url": news_row['url'],
+                    "date": news_row['date'],
+                    "source": news_row['source']
+                })
+            conn.close()
+            
+            root_node = {
+                "id": root['id'],
+                "name": root['name'],
+                "position": root['position'],
+                "phone": root['phone'],
+                "email": root['email'],
+                "news": news,
+                "children": []
+            }
+            organization[company_id]['children'].append(root_node)
+    print("Organization data generated successfully")
+except Exception as e:
+    print(f"Error generating organization data: {e}")
 
 # 初始化数据分析器
 analyzer = None
 if analyzer_available:
     try:
+        print("Initializing IntimacyAnalyzer...")
         analyzer = IntimacyAnalyzer()
         analyzer.build_network(people, relationships)
+        print("IntimacyAnalyzer initialized successfully")
     except Exception as e:
         print(f"Error initializing IntimacyAnalyzer: {e}")
         analyzer = None
