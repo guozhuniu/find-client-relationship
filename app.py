@@ -10,8 +10,11 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 # 导入数据分析模块
 try:
     from analysis.intimacy_analyzer import IntimacyAnalyzer
+    analyzer_available = True
 except ImportError:
     print("Error: Could not import IntimacyAnalyzer. Please make sure the analysis module is properly installed.")
+    analyzer_available = False
+    IntimacyAnalyzer = None
 
 app = Flask(__name__)
 
@@ -212,12 +215,14 @@ for company in companies:
         organization[company_id]['children'].append(root_node)
 
 # 初始化数据分析器
-try:
-    analyzer = IntimacyAnalyzer()
-    analyzer.build_network(people, relationships)
-except Exception as e:
-    print(f"Error initializing IntimacyAnalyzer: {e}")
-    analyzer = None
+analyzer = None
+if analyzer_available:
+    try:
+        analyzer = IntimacyAnalyzer()
+        analyzer.build_network(people, relationships)
+    except Exception as e:
+        print(f"Error initializing IntimacyAnalyzer: {e}")
+        analyzer = None
 
 @app.route('/')
 def index():
@@ -352,7 +357,6 @@ def get_relationships(person_id):
             target_id = row['person1Id']
         
         # 模拟共同联系人数据
-        # 实际项目中，这里应该通过数据库查询获取真实的共同联系人
         common_connections = []
         if row['commonConnections'] > 0:
             # 模拟共同联系人
@@ -430,7 +434,7 @@ def get_relationships(person_id):
 def get_network_analysis():
     """获取网络分析结果"""
     if not analyzer:
-        return jsonify({"error": "Analyzer not initialized"}), 500
+        return jsonify({"error": "Analyzer not available"}), 500
     
     analysis = analyzer.analyze_network()
     return jsonify(analysis)
@@ -439,7 +443,7 @@ def get_network_analysis():
 def get_top_connections(person_id):
     """获取某个人的 top N 亲密关系"""
     if not analyzer:
-        return jsonify({"error": "Analyzer not initialized"}), 500
+        return jsonify({"error": "Analyzer not available"}), 500
     
     top_connections = analyzer.get_top_connections(person_id)
     return jsonify(top_connections)
@@ -448,10 +452,11 @@ def get_top_connections(person_id):
 def get_predicted_connections(person_id):
     """获取预测的人脉关系"""
     if not analyzer:
-        return jsonify({"error": "Analyzer not initialized"}), 500
+        return jsonify({"error": "Analyzer not available"}), 500
     
     predictions = analyzer.predict_connections(person_id)
     return jsonify(predictions)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
