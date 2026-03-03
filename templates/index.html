@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户组织架构和人脉管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/antd@5.12.8/dist/reset.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        
+        .company-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .company-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .company-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+        
+        .company-card h3 {
+            margin-bottom: 10px;
+            color: #1890ff;
+            cursor: pointer;
+        }
+        
+        .company-card p {
+            margin-bottom: 5px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .organization-tree {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 40px;
+        }
+        
+        .tree-node {
+            margin: 5px 0;
+        }
+        
+        .tree-node-content {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .tree-node-content:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .tree-node-content.active {
+            background-color: #e6f7ff;
+        }
+        
+        .tree-node-children {
+            margin-left: 20px;
+            display: none;
+        }
+        
+        .tree-node-children.expanded {
+            display: block;
+        }
+        
+        .person-info {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .person-info h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .person-info p {
+            margin-bottom: 10px;
+            color: #666;
+        }
+        
+        .news-list {
+            margin-top: 20px;
+        }
+        
+        .news-item {
+            padding: 10px;
+            border-left: 4px solid #1890ff;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+        }
+        
+        .news-item h4 {
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .news-item p {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+        
+        .news-item a {
+            color: #1890ff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .news-item a:hover {
+            text-decoration: underline;
+        }
+        
+        .relationship-info {
+            margin-top: 30px;
+        }
+        
+        .relationship-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            flex-wrap: wrap;
+        }
+        
+        .relationship-item:last-child {
+            border-bottom: none;
+        }
+        
+        .intimacy-score {
+            width: 100px;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin: 0 10px;
+            overflow: hidden;
+        }
+        
+        .intimacy-bar {
+            height: 100%;
+            background-color: #52c41a;
+            border-radius: 10px;
+        }
+        
+        .common-connection-item {
+            cursor: pointer;
+            color: #1890ff;
+            text-decoration: underline;
+            margin-right: 10px;
+        }
+        
+        .common-connection-item:hover {
+            color: #40a9ff;
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>客户组织架构和人脉管理系统</h1>
+        
+        <!-- 公司列表 -->
+        <div class="company-list" id="companyList">
+            <!-- 公司卡片将通过JavaScript动态生成 -->
+        </div>
+        
+        <!-- 组织架构树 -->
+        <div class="organization-tree" id="organizationTree" style="display: none;">
+            <h2>组织架构</h2>
+            <div class="tree-content" id="treeContent">
+                <!-- 组织架构树将通过JavaScript动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 人员详情 -->
+        <div class="person-info" id="personInfo" style="display: none;">
+            <h2>人员详情</h2>
+            <div class="info-content" id="infoContent">
+                <!-- 人员详情将通过JavaScript动态生成 -->
+            </div>
+        </div>
+        
+        <!-- 数据分析 -->
+        <div class="person-info" id="analysisInfo" style="display: none;">
+            <h2>数据分析</h2>
+            <div class="analysis-content" id="analysisContent">
+                <!-- 数据分析结果将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 共同联系人详情模态框 -->
+    <div id="connectionModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="connectionName"></h3>
+            <div id="connectionDetails"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 公司数据
+        let companies = [];
+        let currentCompanyId = null;
+        let currentPersonId = null;
+        
+        // 加载公司列表
+        async function loadCompanies() {
+            try {
+                const response = await fetch('/api/companies');
+                companies = await response.json();
+                renderCompanyList();
+            } catch (error) {
+                console.error('加载公司列表失败:', error);
+            }
+        }
+        
+        // 渲染公司列表
+        function renderCompanyList() {
+            const companyList = document.getElementById('companyList');
+            companyList.innerHTML = '';
+            
+            companies.forEach(company => {
+                const card = document.createElement('div');
+                card.className = 'company-card';
+                card.innerHTML = `
+                    <h3 onclick="loadOrganization('${company.id}')">${company.name}</h3>
+                    <p><strong>行业:</strong> ${company.industry}</p>
+                    <p><strong>网站:</strong> <a href="${company.website}" target="_blank">${company.website}</a></p>
+                    <p><strong>描述:</strong> ${company.description}</p>
+                `;
+                companyList.appendChild(card);
+            });
+        }
+        
+        // 加载组织架构
+        async function loadOrganization(companyId) {
+            currentCompanyId = companyId;
+            currentPersonId = null;
+            
+            try {
+                const response = await fetch(`/api/organization/${companyId}`);
+                const organization = await response.json();
+                
+                // 显示组织架构树
+                const organizationTree = document.getElementById('organizationTree');
+                organizationTree.style.display = 'block';
+                
+                // 隐藏人员详情
+                const personInfo = document.getElementById('personInfo');
+                personInfo.style.display = 'none';
+                
+                // 渲染组织架构树
+                renderOrganizationTree(organization);
+            } catch (error) {
+                console.error('加载组织架构失败:', error);
+            }
+        }
+        
+        // 渲染组织架构树
+        function renderOrganizationTree(node, container = null) {
+            if (!container) {
+                container = document.getElementById('treeContent');
+                container.innerHTML = '';
+            }
+            
+            const treeNode = document.createElement('div');
+            treeNode.className = 'tree-node';
+            
+            const nodeContent = document.createElement('div');
+            nodeContent.className = 'tree-node-content';
+            nodeContent.innerHTML = node.name;
+            
+            // 如果有子节点，添加展开/收起功能
+            if (node.children && node.children.length > 0) {
+                nodeContent.innerHTML = `
+                    <span style="margin-right: 10px; cursor: pointer;" onclick="toggleNode(this)">▼</span>
+                    ${node.name}
+                `;
+                
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'tree-node-children';
+                
+                node.children.forEach(child => {
+                    renderOrganizationTree(child, childrenContainer);
+                });
+                
+                treeNode.appendChild(nodeContent);
+                treeNode.appendChild(childrenContainer);
+            } else {
+                // 点击人员节点显示详情
+                nodeContent.onclick = () => loadPersonInfo(node.id, node);
+                treeNode.appendChild(nodeContent);
+            }
+            
+            container.appendChild(treeNode);
+        }
+        
+        // 切换节点展开/收起
+        function toggleNode(element) {
+            const parent = element.parentElement.parentElement;
+            const childrenContainer = parent.querySelector('.tree-node-children');
+            
+            if (childrenContainer.classList.contains('expanded')) {
+                childrenContainer.classList.remove('expanded');
+                element.textContent = '▶';
+            } else {
+                childrenContainer.classList.add('expanded');
+                element.textContent = '▼';
+            }
+        }
+        
+        // 加载人员详情
+        async function loadPersonInfo(personId, personData) {
+            currentPersonId = personId;
+            
+            // 显示人员详情
+            const personInfo = document.getElementById('personInfo');
+            personInfo.style.display = 'block';
+            
+            // 隐藏数据分析
+            const analysisInfo = document.getElementById('analysisInfo');
+            analysisInfo.style.display = 'none';
+            
+            // 渲染人员基本信息
+            const infoContent = document.getElementById('infoContent');
+            infoContent.innerHTML = `
+                <h3>${personData.name}</h3>
+                <p><strong>职位:</strong> ${personData.position}</p>
+                <p><strong>电话:</strong> ${personData.phone}</p>
+                <p><strong>邮箱:</strong> ${personData.email}</p>
+                
+                <button onclick="loadAnalysis('${personId}')" style="margin: 10px 0; padding: 8px 16px; background-color: #1890ff; color: white; border: none; border-radius: 4px; cursor: pointer;">查看数据分析</button>
+                
+                <div class="news-list">
+                    <h4>最近新闻</h4>
+                    ${personData.news && personData.news.length > 0 ? 
+                        personData.news.map(news => `
+                            <div class="news-item">
+                                <h4>${news.title}</h4>
+                                <p>来源: ${news.source} | 日期: ${news.date}</p>
+                                <a href="${news.url}" target="_blank">查看详情</a>
+                            </div>
+                        `).join('') : 
+                        '<p>暂无新闻</p>'
+                    }
+                </div>
+                
+                <div class="relationship-info">
+                    <h4>人脉关系</h4>
+                    <div id="relationshipList">
+                        <!-- 人脉关系将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+            `;
+            
+            // 加载人脉关系
+            loadRelationships(personId);
+        }
+        
+        // 加载数据分析
+        async function loadAnalysis(personId) {
+            // 显示数据分析
+            const analysisInfo = document.getElementById('analysisInfo');
+            analysisInfo.style.display = 'block';
+            
+            // 渲染数据分析结果
+            const analysisContent = document.getElementById('analysisContent');
+            analysisContent.innerHTML = '<p>加载中...</p>';
+            
+            try {
+                // 加载网络分析
+                const networkResponse = await fetch('/api/analysis/network');
+                const networkData = await networkResponse.json();
+                
+                // 加载top connections
+                const topConnectionsResponse = await fetch(`/api/analysis/top-connections/${personId}`);
+                const topConnectionsData = await topConnectionsResponse.json();
+                
+                // 加载预测关系
+                const predictionsResponse = await fetch(`/api/analysis/predict-connections/${personId}`);
+                const predictionsData = await predictionsResponse.json();
+                
+                // 渲染分析结果
+                analysisContent.innerHTML = `
+                    <div style="margin-bottom: 30px;">
+                        <h3>网络分析</h3>
+                        <p><strong>节点数:</strong> ${networkData.nodes}</p>
+                        <p><strong>边数:</strong> ${networkData.edges}</p>
+                        <p><strong>网络密度:</strong> ${networkData.density.toFixed(4)}</p>
+                        <p><strong>平均聚类系数:</strong> ${networkData.average_clustering.toFixed(4)}</p>
+                        <p><strong>平均度:</strong> ${networkData.average_degree.toFixed(2)}</p>
+                    </div>
+                    
+                    <div style="margin-bottom: 30px;">
+                        <h3>Top 亲密关系</h3>
+                        ${topConnectionsData.length > 0 ? 
+                            topConnectionsData.map(conn => `
+                                <div class="relationship-item">
+                                    <span>${conn.name} (${conn.position})</span>
+                                    <div class="intimacy-score">
+                                        <div class="intimacy-bar" style="width: ${conn.intimacyScore}%"></div>
+                                    </div>
+                                    <span>${conn.intimacyScore}%</span>
+                                </div>
+                            `).join('') : 
+                            '<p>暂无数据</p>'
+                        }
+                    </div>
+                    
+                    <div>
+                        <h3>预测人脉关系</h3>
+                        ${predictionsData.length > 0 ? 
+                            predictionsData.map(pred => `
+                                <div class="relationship-item">
+                                    <span>${pred.name} (${pred.position})</span>
+                                    <div class="intimacy-score">
+                                        <div class="intimacy-bar" style="width: ${pred.predictedIntimacy}%"></div>
+                                    </div>
+                                    <span>${pred.predictedIntimacy}%</span>
+                                </div>
+                            `).join('') : 
+                            '<p>暂无预测数据</p>'
+                        }
+                    </div>
+                `;
+            } catch (error) {
+                console.error('加载数据分析失败:', error);
+                analysisContent.innerHTML = '<p>加载数据分析失败</p>';
+            }
+        }
+        
+        // 加载人脉关系
+        async function loadRelationships(personId) {
+            try {
+                const response = await fetch(`/api/relationships/${personId}`);
+                const relationships = await response.json();
+                
+                const relationshipList = document.getElementById('relationshipList');
+                
+                if (relationships.length > 0) {
+                    relationshipList.innerHTML = relationships.map(rel => {
+                        // 模拟获取关联人员信息
+                        const relatedPersonName = getPersonNameById(rel.person2Id);
+                        return `
+                            <div class="relationship-item">
+                                <span>${relatedPersonName}</span>
+                                <div class="intimacy-score">
+                                    <div class="intimacy-bar" style="width: ${rel.intimacyScore}%"></div>
+                                </div>
+                                <span>${rel.intimacyScore}%</span>
+                                <span style="margin-left: 20px;">共同联系人: ${rel.commonConnections}</span>
+                                <span style="margin-left: 20px;">互动频率: ${rel.interactionFrequency}</span>
+                                ${rel.commonConnectionsList && rel.commonConnectionsList.length > 0 ? `
+                                    <div style="margin-top: 10px; margin-left: 100px; width: 100%;">
+                                        <strong>共同联系人:</strong>
+                                        <div style="margin-top: 5px;">
+                                            ${rel.commonConnectionsList.map((conn, index) => `
+                                                <span class="common-connection-item" onclick="showConnectionDetails(${index}, ${JSON.stringify(rel.commonConnectionsList).replace(/'/g, "\\'")})">
+                                                    ${conn.name} (${conn.position})
+                                                </span>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                ${rel.interactionActivities && rel.interactionActivities.length > 0 ? `
+                                    <div style="margin-top: 10px; margin-left: 100px; width: 100%;">
+                                        <strong>互动活动:</strong>
+                                        <ul style="list-style-type: none; padding-left: 10px; margin-top: 5px;">
+                                            ${rel.interactionActivities.map(activity => `
+                                                <li>${activity.date} - ${activity.type}: ${activity.description}</li>
+                                            `).join('')}
+                                        </ul>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    relationshipList.innerHTML = '<p>暂无人脉关系</p>';
+                }
+            } catch (error) {
+                console.error('加载人脉关系失败:', error);
+            }
+        }
+        
+        // 根据ID获取人员名称（模拟）
+        function getPersonNameById(personId) {
+            const nameMap = {
+                '111': 'David Taylor',
+                '121': 'John Smith',
+                '211': 'Alan Jope'
+            };
+            return nameMap[personId] || '未知人员';
+        }
+        
+        // 显示共同联系人详情
+        function showConnectionDetails(index, connectionsList) {
+            // 获取模态框元素
+            const modal = document.getElementById('connectionModal');
+            const connectionName = document.getElementById('connectionName');
+            const connectionDetails = document.getElementById('connectionDetails');
+            
+            // 获取对应的共同联系人信息
+            const connection = connectionsList[index];
+            
+            // 设置模态框内容
+            connectionName.textContent = connection.name;
+            connectionDetails.innerHTML = `
+                <p><strong>职位:</strong> ${connection.position}</p>
+                <p><strong>邮箱:</strong> ${connection.email || '暂无'}</p>
+                <p><strong>电话:</strong> ${connection.phone || '暂无'}</p>
+            `;
+            
+            // 显示模态框
+            modal.style.display = 'block';
+        }
+        
+        // 关闭模态框
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('connectionModal').style.display = 'none';
+        }
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('connectionModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // 初始化
+        window.onload = loadCompanies;
+    </script>
+</body>
+</html>
